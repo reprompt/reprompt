@@ -7,7 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   python_package.hello_world
+   reprompt.hello_world
 
 Submodules
 ----------
@@ -15,7 +15,7 @@ Submodules
 python\_package.setup module
 ----------------------------
 
-.. automodule:: python_package.setup
+.. automodule:: reprompt.setup
    :members:
    :undoc-members:
    :show-inheritance:

@@ -3,16 +3,15 @@ requires = ["flit"]
 build-backend = "flit.buildapi"
 
 [project]
-name =  "py-project-toml"
+name =  "reprompt"
 authors = [
-    {name = "Daniel Ciborowski", email = "dciborow@microsoft.com"},
+    {name = "Lukas Martinelli", email = "me@lukasmartinelli.ch"},
 ]
 description = "Sample Python Project for creating a new Python Module"
 readme = "README.md"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -47,12 +46,12 @@ test = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/microsoft/python-package-template/tree/main#readme"
-Source = "https://github.com/microsoft/python-package-template"
-Tracker = "https://github.com/microsoft/python-package-template/issues"
+Documentation = "https://github.com/syncup-ai/reprompt/tree/main#readme"
+Source = "https://github.com/syncup-ai/reprompt"
+Tracker = "https://github.com/syncup-ai/reprompt/issues"
 
 [tool.flit.module]
-name = "python_package"
+name = "reprompt"
 
 [tool.bandit]
 exclude_dirs = ["build","dist","tests","scripts"]
