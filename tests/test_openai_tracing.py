@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 from openai import OpenAI
 
-from reprompt import start_trace
+import reprompt
 from reprompt.custom_httpx import openai_trace_request_response
 
 
@@ -24,9 +24,8 @@ def mock_trace_function():
 
 
 def openai_call():
-    start_trace("test")
-
-    client = OpenAI(api_key="test")
+    reprompt.init(api_key="blatest")
+    client = OpenAI()
 
     completion = client.completions.create(
         model="gpt-3.5-turbo-instruct", prompt="Say this is a test", max_tokens=7, temperature=0

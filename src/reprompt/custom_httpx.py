@@ -4,13 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
-import uuid
-from datetime import datetime
 
 import httpx
 
-from reprompt.tracing import FunctionTrace
+from reprompt.tracing import FunctionTrace, write_traces_to_file
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -18,32 +15,6 @@ logger = logging.getLogger(__name__)
 
 # Save the original send method to call it later
 _original_send = httpx.Client.send
-
-
-REPROMPT_TRACE_ENDPOINT_URL = "http://localhost:3001/api/tracer/upload_batch"
-
-
-async def upload_trace_data(trace_info):
-    """
-    Asynchronously uploads trace data to a specified endpoint.
-    """
-    timestamp = datetime.now().isoformat()
-    data = {"traces": [{"function_calls": [trace_info], "timestamp": timestamp}]}
-
-    # Look for the REPROMPT_API_KEY environment variable, generate a random UUID if not found
-    api_key = os.getenv("REPROMPT_API_KEY", str(uuid.uuid4()))
-
-    headers = {"apiKey": f"{api_key}"}
-
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(REPROMPT_TRACE_ENDPOINT_URL, json=data, headers=headers)
-            response.raise_for_status()  # Raises an exception for 4XX/5XX responses
-            logger.debug(f"Trace data uploaded successfully: {response.status_code}")
-    except httpx.RequestError as exc:
-        logger.debug(f"An error occurred while uploading trace data: {exc}")
-    except httpx.HTTPStatusError as exc:
-        logger.debug(f"Error response {exc.response.status_code} while uploading trace data: {exc.response.text}")
 
 
 def openai_trace_request_response(request, response):
@@ -72,9 +43,9 @@ def openai_trace_request_response(request, response):
     # Schedule the upload of trace data
     loop = asyncio.get_event_loop()
     if loop.is_running():
-        asyncio.create_task(upload_trace_data(trace.get_trace_info()))
+        asyncio.create_task(write_traces_to_file([trace.get_trace_info()]))
     else:
-        asyncio.run(upload_trace_data(trace.get_trace_info()))
+        asyncio.run(write_traces_to_file([trace.get_trace_info()]))
 
 
 def custom_send(self, request, *args, **kwargs):

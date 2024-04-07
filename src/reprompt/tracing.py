@@ -1,4 +1,28 @@
+from __future__ import annotations
+
 from datetime import datetime
+
+import aiohttp
+
+from .config import api_base_url, api_key
+
+
+async def write_traces_to_file(traces):
+    timestamp = datetime.now().isoformat()
+    data = {"traces": [{"function_calls": traces, "timestamp": timestamp}]}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{api_base_url}/api/tracer/upload_batch",
+                json=data,
+                headers={"Content-Type": "application/json", "apiKey": api_key},
+            ) as response:
+                if response.status != 200:
+                    print("Failed to upload batch")
+                else:
+                    print("Batch uploaded successfully")
+    except aiohttp.ClientError:
+        print("Cannot connect to tracer")
 
 
 class FunctionTrace:
