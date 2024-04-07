@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import datetime
-import functools
-import json
 import logging
-from typing import Callable
 
+from . import config
 from .custom_httpx import setup_monkey_patch
 from .tracing import FunctionTrace
 
@@ -15,59 +12,31 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # IMPORTANT: setting version for Reprompt package
-__version__ = "0.0.5"
-__all__ = ["FunctionTrace", "with_tracing", "start_trace", "TraceLogger"]
+__version__ = "0.0.6"
+# IMPORTANT: All the functions we want to expose publicly from the reprompt module
+__all__ = ["FunctionTrace", "init", "write_traces_to_file"]
 
 
-class TraceLogger:
-    @staticmethod
-    def log_request(func: Callable, *args, **kwargs):
-        """
-        Log the request made to the OpenAI API.
-        """
-        request_info = {
-            "function": func.__name__,
-            "args": args,
-            "kwargs": kwargs,
-            "timestamp": datetime.datetime.now().isoformat(),
-        }
-        logger.info("Request to OpenAI: %s", json.dumps(request_info))
-
-    @staticmethod
-    def log_response(response):
-        """
-        Log the response from the OpenAI API.
-        """
-        response_info = {"response": response, "timestamp": datetime.datetime.now().isoformat()}
-        logger.info("Response from OpenAI: %s", json.dumps(response_info))
-
-
-def with_tracing(func):
+def init(api_base_url: str = None, api_key: str = None, autocapture: bool = True):
     """
-    Decorator to add tracing around a function call.
+    Initializes the reprompt SDK with the given API base URL and API key.
+    If api_base_url or api_key is not None in the arguments, we override the global variable.
     """
+    if api_base_url is not None:
+        config.api_base_url = api_base_url
+    if api_key is not None:
+        config.api_key = api_key
 
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        TraceLogger.log_request(func, *args, **kwargs)
-        result = func(*args, **kwargs)
-        TraceLogger.log_response(result)
-        return result
+    if not config.api_key:
+        logger.error("API key is required but was not provided. Monkey patching will not be applied.")
+        return
 
-    return wrapper
+    if autocapture:
+        try:
+            # Apply the monkey patch
+            setup_monkey_patch()
+            logger.info("All HTTPX calls will now be intercepted and logged by Reprompt.")
+        except ImportError as e:
+            logger.error(f"Required module not found: {e}. Monkey patching not applied.")
 
-
-def start_trace(API_KEY=None):
-    """
-    Sets up monkey patching to intercept and log all HTTPX calls.
-    """
-    try:
-        # Apply the monkey patch
-        setup_monkey_patch()
-
-        logger.info("All HTTPX calls will now be intercepted and logged.")
-        logger.info("reprompt - Trace setup initialized with API_KEY: %s", API_KEY)
-
-    except ImportError as e:
-        logger.info(f"Required module not found: {e}. Monkey patching not applied.")
-        logger.info("reprompt - Trace setup initialized with API_KEY: %s", API_KEY)
+    logger.info(f"reprompt initialized with API Base URL: {config.api_base_url} and API Key: {config.api_key}")
