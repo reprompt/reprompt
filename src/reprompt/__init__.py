@@ -6,6 +6,8 @@
 from __future__ import annotations
 from typing import Callable
 
+from .tracing import FunctionTrace
+
 __version__ = "0.0.3"
 
 import logging
@@ -17,6 +19,7 @@ import json
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class TraceLogger:
     @staticmethod
     def log_request(func: Callable, *args, **kwargs):
@@ -27,7 +30,7 @@ class TraceLogger:
             "function": func.__name__,
             "args": args,
             "kwargs": kwargs,
-            "timestamp": datetime.datetime.now().isoformat()
+            "timestamp": datetime.datetime.now().isoformat(),
         }
         logger.info("Request to OpenAI: %s", json.dumps(request_info))
 
@@ -36,46 +39,39 @@ class TraceLogger:
         """
         Log the response from the OpenAI API.
         """
-        response_info = {
-            "response": response,
-            "timestamp": datetime.datetime.now().isoformat()
-        }
+        response_info = {"response": response, "timestamp": datetime.datetime.now().isoformat()}
         logger.info("Response from OpenAI: %s", json.dumps(response_info))
+
 
 def with_tracing(func):
     """
     Decorator to add tracing around a function call.
     """
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         TraceLogger.log_request(func, *args, **kwargs)
         result = func(*args, **kwargs)
         TraceLogger.log_response(result)
         return result
+
     return wrapper
+
+
+from .custom_httpx import setup_monkey_patch
+
 
 def start_trace(API_KEY=None):
     """
-    Enhances the OpenAI API calls with tracing functionality if the openai module is available.
-    Takes an optional API_KEY argument for potential future use.
+    Sets up monkey patching to intercept and log all HTTPX calls.
     """
     try:
-        import openai
-        from openai.api_resources import ChatCompletion, Completion
+        # Apply the monkey patch
+        setup_monkey_patch()
 
-
-        def apply_tracing():
-            """
-            Apply the tracing decorator to OpenAI API methods.
-            """
-            print('i got the tracing')
-            print('appliedit')
-            for cls in [ChatCompletion, Completion]:
-                original_create = cls.create
-                cls.create = with_tracing(original_create)
-
-        apply_tracing()
+        logger.info("All HTTPX calls will now be intercepted and logged.")
         logger.info("reprompt - Trace setup initialized with API_KEY: %s", API_KEY)
-    except ImportError:
-        logger.info("OpenAI module not found. Tracing not applied.")
+
+    except ImportError as e:
+        logger.info(f"Required module not found: {e}. Monkey patching not applied.")
         logger.info("reprompt - Trace setup initialized with API_KEY: %s", API_KEY)
