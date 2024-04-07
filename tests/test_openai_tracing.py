@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 from openai import OpenAI
 
-from reprompt import start_trace
+import reprompt
 from reprompt.custom_httpx import openai_trace_request_response
 
 

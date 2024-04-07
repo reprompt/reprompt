@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import datetime
-import functools
-import json
 import logging
-from typing import Callable
 
+from . import config
 from .custom_httpx import setup_monkey_patch
 from .tracing import FunctionTrace
 
@@ -15,13 +12,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # IMPORTANT: setting version for Reprompt package
-
-# IMPORTANT: setting version for Reprompt package
 __version__ = "0.0.6"
+# IMPORTANT: All the functions we want to expose publicly from the reprompt module
 __all__ = ["FunctionTrace", "init", "write_traces_to_file"]
 
 
-def init(api_base_url: str = None, api_key: str = None, monkey_patch: bool = True):
+def init(api_base_url: str = None, api_key: str = None, autocapture: bool = True):
     """
     Initializes the reprompt SDK with the given API base URL and API key.
     If api_base_url or api_key is not None in the arguments, we override the global variable.
@@ -35,7 +31,7 @@ def init(api_base_url: str = None, api_key: str = None, monkey_patch: bool = Tru
         logger.error("API key is required but was not provided. Monkey patching will not be applied.")
         return
 
-    if monkey_patch:
+    if autocapture:
         try:
             # Apply the monkey patch
             setup_monkey_patch()
