@@ -21,7 +21,8 @@ classifiers = [
 requires-python = ">=3.8.1"
 dynamic = ["version"]
 dependencies= [
-    "httpx==0.27.0",
+    "httpx>=0.27.0",
+    "aiohttp>=3.9.3",
     "wrapt>=1.12.1"
 ]
 [project.optional-dependencies]

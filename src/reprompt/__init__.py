@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import datetime
-import functools
-import json
 import logging
-from typing import Callable
+import os
+
+import aiohttp
 
 from .custom_httpx import setup_monkey_patch
 from .tracing import FunctionTrace
@@ -15,59 +15,46 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # IMPORTANT: setting version for Reprompt package
-__version__ = "0.0.5"
-__all__ = ["FunctionTrace", "with_tracing", "start_trace", "TraceLogger"]
+__version__ = "0.0.6"
+__all__ = ["FunctionTrace", "init", "write_traces_to_file"]
 
 
-class TraceLogger:
-    @staticmethod
-    def log_request(func: Callable, *args, **kwargs):
-        """
-        Log the request made to the OpenAI API.
-        """
-        request_info = {
-            "function": func.__name__,
-            "args": args,
-            "kwargs": kwargs,
-            "timestamp": datetime.datetime.now().isoformat(),
-        }
-        logger.info("Request to OpenAI: %s", json.dumps(request_info))
-
-    @staticmethod
-    def log_response(response):
-        """
-        Log the response from the OpenAI API.
-        """
-        response_info = {"response": response, "timestamp": datetime.datetime.now().isoformat()}
-        logger.info("Response from OpenAI: %s", json.dumps(response_info))
+async def write_traces_to_file(traces):
+    timestamp = datetime.now().isoformat()
+    data = {"traces": [{"function_calls": traces, "timestamp": timestamp}]}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                "http://localhost:3001/api/tracer/upload_batch",
+                json=data,
+                headers={"Content-Type": "application/json", "apiKey": "a"},
+            ) as response:
+                if response.status != 200:
+                    print("Failed to upload batch")
+                else:
+                    print("Batch uploaded successfully")
+    except aiohttp.ClientError:
+        print("Cannot connect to tracer")
 
 
-def with_tracing(func):
+def init(api_base_url: str = None, api_key: str = None):
     """
-    Decorator to add tracing around a function call.
+    Initializes the reprompt SDK with the given API base URL and API key.
+    Both parameters can have default values and can also be read from environment variables.
     """
+    # Default values or environment variables
+    api_base_url = api_base_url or os.getenv("REPROMPT_API_BASE_URL", "http://repromptai.com/")
+    api_key = api_key or os.getenv("REPROMPT_API_KEY")
 
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        TraceLogger.log_request(func, *args, **kwargs)
-        result = func(*args, **kwargs)
-        TraceLogger.log_response(result)
-        return result
+    if not api_key:
+        logger.error("API key is required but was not provided. Monkey patching will not be applied.")
+        return
 
-    return wrapper
-
-
-def start_trace(API_KEY=None):
-    """
-    Sets up monkey patching to intercept and log all HTTPX calls.
-    """
     try:
         # Apply the monkey patch
         setup_monkey_patch()
-
-        logger.info("All HTTPX calls will now be intercepted and logged.")
-        logger.info("reprompt - Trace setup initialized with API_KEY: %s", API_KEY)
-
+        logger.info("All HTTPX calls will now be intercepted and logged by Reprompt.")
     except ImportError as e:
-        logger.info(f"Required module not found: {e}. Monkey patching not applied.")
-        logger.info("reprompt - Trace setup initialized with API_KEY: %s", API_KEY)
+        logger.error(f"Required module not found: {e}. Monkey patching not applied.")
+
+    logger.info(f"reprompt initialized with API Base URL: {api_base_url} and API Key: {api_key}")
