@@ -1,21 +1,18 @@
-#   -------------------------------------------------------------
-#   Copyright (c) Microsoft Corporation. All rights reserved.
-#   Licensed under the MIT License. See LICENSE in project root for information.
-#   -------------------------------------------------------------
-"""Python Package Template"""
+"""Reprompt"""
+
 from __future__ import annotations
 from typing import Callable
-
-from .tracing import FunctionTrace
-
-__version__ = "0.0.5"
-
 import logging
 import functools
 import datetime
 import json
 
-# Configure logging
+from .tracing import FunctionTrace
+
+# IMPORTANT: setting version for Reprompt package
+__version__ = "0.0.5"
+
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
