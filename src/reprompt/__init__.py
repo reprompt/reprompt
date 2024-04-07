@@ -1,23 +1,22 @@
-#   -------------------------------------------------------------
-#   Copyright (c) Microsoft Corporation. All rights reserved.
-#   Licensed under the MIT License. See LICENSE in project root for information.
-#   -------------------------------------------------------------
-"""Python Package Template"""
+"""Reprompt"""
+
 from __future__ import annotations
+
+import datetime
+import functools
+import json
+import logging
 from typing import Callable
 
+from .custom_httpx import setup_monkey_patch
 from .tracing import FunctionTrace
 
-__version__ = "0.0.5"
-
-import logging
-import functools
-import datetime
-import json
-
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# IMPORTANT: setting version for Reprompt package
+__version__ = "0.0.5"
+__all__ = ["FunctionTrace", "with_tracing", "start_trace", "TraceLogger"]
 
 
 class TraceLogger:
@@ -56,9 +55,6 @@ def with_tracing(func):
         return result
 
     return wrapper
-
-
-from .custom_httpx import setup_monkey_patch
 
 
 def start_trace(API_KEY=None):
