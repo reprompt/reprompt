@@ -17,7 +17,7 @@ __version__ = "0.0.6"
 __all__ = ["FunctionTrace", "init", "write_traces_to_file"]
 
 
-def init(api_base_url: str = None, api_key: str = None, autocapture: bool = True):
+def init(api_base_url: str = None, api_key: str = None, autocapture: bool = False):
     """
     Initializes the reprompt SDK with the given API base URL and API key.
     If api_base_url or api_key is not None in the arguments, we override the global variable.
@@ -27,6 +27,7 @@ def init(api_base_url: str = None, api_key: str = None, autocapture: bool = True
     if api_key is not None:
         config.api_key = api_key
 
+    logger.info(api_key)
     if not config.api_key:
         logger.error("API key is required but was not provided. Monkey patching will not be applied.")
         return
