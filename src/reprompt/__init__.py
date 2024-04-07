@@ -1,20 +1,21 @@
 """Reprompt"""
 
 from __future__ import annotations
-from typing import Callable
-import logging
-import functools
+
 import datetime
+import functools
 import json
+import logging
+from typing import Callable
 
+from .custom_httpx import setup_monkey_patch
 from .tracing import FunctionTrace
-
-# IMPORTANT: setting version for Reprompt package
-__version__ = "0.0.5"
-
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# IMPORTANT: setting version for Reprompt package
+__version__ = "0.0.5"
 
 
 class TraceLogger:
@@ -53,9 +54,6 @@ def with_tracing(func):
         return result
 
     return wrapper
-
-
-from .custom_httpx import setup_monkey_patch
 
 
 def start_trace(API_KEY=None):
