@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 # IMPORTANT: setting version for Reprompt package
 __version__ = "0.0.5"
+__all__ = ["FunctionTrace", "with_tracing", "start_trace", "TraceLogger"]
 
 
 class TraceLogger:
