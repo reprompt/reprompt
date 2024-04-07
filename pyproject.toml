@@ -28,6 +28,8 @@ spark = [
     "pyspark>=3.0.0"
 ]
 test = [
+    "httpx>=0.21.0",
+    "openai>=0.10.0",
     "bandit[toml]==1.7.5",
     "black==23.3.0",
     "check-manifest==0.49",
@@ -48,9 +50,9 @@ test = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/syncup-ai/reprompt/tree/main#readme"
-Source = "https://github.com/syncup-ai/reprompt"
-Tracker = "https://github.com/syncup-ai/reprompt/issues"
+Documentation = "https://github.com/reprompt/reprompt/tree/main#readme"
+Source = "https://github.com/reprompt/reprompt"
+Tracker = "https://github.com/reprompt/reprompt/issues"
 
 [tool.flit.module]
 name = "reprompt"
