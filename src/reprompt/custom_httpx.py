@@ -1,3 +1,5 @@
+"""Module providing a function printing python version."""
+
 from __future__ import annotations
 
 import asyncio
@@ -76,6 +78,9 @@ def openai_trace_request_response(request, response):
 
 
 def custom_send(self, request, *args, **kwargs):
+    """
+    Custom send method to intercept requests to api.openai.com.
+    """
     # Check if the request is for api.openai.com
     if "api.openai.com" in request.url.host:
         # Call the original send method
@@ -91,5 +96,7 @@ def custom_send(self, request, *args, **kwargs):
 
 
 def setup_monkey_patch():
-    # Replace the send method with the custom one
+    """
+    Replace the httpx send method with the custom one
+    """
     httpx.Client.send = custom_send
