@@ -8,7 +8,7 @@ from typing import Callable
 
 from .tracing import FunctionTrace
 
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 
 import logging
 import functools

@@ -5,12 +5,12 @@ on:
   pull_request:
     branches: [ main ]
   release:
-    types: [created]    
+    types: [created]
   workflow_dispatch:
 
 jobs:
   validation:
-    uses: microsoft/action-python/.github/workflows/validation.yml@0.6.4
+    uses: microsoft/action-python/.github/workflows/validation.yml@0.7.2
     with:
       workdir: '.'
 

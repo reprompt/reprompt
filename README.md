@@ -1,3 +1,40 @@
+# Instructions
+
+
+Once you have a venv
+
+```
+pip install flit
+```
+
+Navigate to the project root and run:
+
+```
+flit install --symlink
+```
+
+This command installs the package in editable mode (similar to pip install -e .), allowing you to make
+changes to the code and see them reflected without reinstalling.
+
+Running the Tests
+Run Tests with pytest:
+
+```
+pytest
+```
+
+This command discovers and runs all tests in the tests directory.
+
+
+## How do I release a new version of reprompt?
+
+The repository is configured to automatically upload the package to PyPI when the version number changes. This is handled by a GitHub Actions workflow defined in .github/workflows/CI.yml. To trigger the upload:
+
+1. Change the version number in `src/reprompt/__init__.py`
+2. Commit and Push the changes to your repository.
+3. The GitHub Actions workflow will automatically build the package and upload it to PyPI.
+
+
 # Python Project Template
 
 This project is a template for creating Python projects that follows the Python Standards declared in PEP 621. It uses a pyproject.yaml file to configure the project and Flit to simplify the build process and publish to PyPI. Flit simplifies the build and packaging process for Python projects by eliminating the need for separate setup.py and setup.cfg files. With Flit, you can manage all relevant configurations within the pyproject.toml file, streamlining development and promoting maintainability by centralizing project metadata, dependencies, and build specifications in one place.
