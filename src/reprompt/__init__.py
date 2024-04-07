@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+import datetime
+import functools
+import json
 import logging
+from typing import Callable
 
-from . import config
 from .custom_httpx import setup_monkey_patch
-from .tracing import FunctionTrace, write_traces_to_file
+from .tracing import FunctionTrace
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# IMPORTANT: setting version for Reprompt package
 
 # IMPORTANT: setting version for Reprompt package
 __version__ = "0.0.6"
