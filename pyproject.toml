@@ -7,7 +7,7 @@ name =  "reprompt"
 authors = [
     {name = "Lukas Martinelli", email = "me@lukasmartinelli.ch"},
 ]
-description = "Sample Python Project for creating a new Python Module"
+description = "Reprompt"
 readme = "README.md"
 classifiers = [
     "Development Status :: 3 - Alpha",
