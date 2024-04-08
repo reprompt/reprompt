@@ -6,7 +6,7 @@ import logging
 
 from . import config
 from .custom_httpx import setup_monkey_patch
-from .tracing import FunctionTrace
+from .tracing import FunctionTrace, write_traces
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # IMPORTANT: setting version for Reprompt package
 __version__ = "0.0.6"
 # IMPORTANT: All the functions we want to expose publicly from the reprompt module
-__all__ = ["FunctionTrace", "init", "write_traces_to_file"]
+__all__ = ["init", "FunctionTrace", "write_traces"]
 
 
 def init(api_base_url: str = None, api_key: str = None, autocapture: bool = False):

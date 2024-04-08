@@ -3,11 +3,16 @@ from __future__ import annotations
 from datetime import datetime
 
 import aiohttp
+import asyncio
 
 from . import config
 
+from .background_task_manager import BackgroundTaskManager
+from functools import partial
 
-async def write_traces_to_file(traces):
+
+async def write_traces_task(traces):
+    print("writing traces TASK")
     timestamp = datetime.now().isoformat()
     data = {"traces": [{"function_calls": traces, "timestamp": timestamp}]}
     if config.api_key is None:
@@ -26,6 +31,16 @@ async def write_traces_to_file(traces):
                     print("Batch uploaded successfully")
     except aiohttp.ClientError:
         print("Cannot connect to tracer")
+
+
+def write_traces(traces):
+    loop = asyncio.get_event_loop()
+    if loop.is_running():
+        loop.create_task(write_traces_task([trace.get_trace_info() for trace in traces]))
+    else:
+        # Handling the case where loop is not running is tricky
+        # It's usually not recommended to try to start the loop yourself in a library function
+        print("Event loop is not running. Can't schedule write_traces_task.")
 
 
 class FunctionTrace:

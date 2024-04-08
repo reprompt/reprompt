@@ -7,7 +7,7 @@ import logging
 
 import httpx
 
-from reprompt.tracing import FunctionTrace, write_traces_to_file
+from reprompt.tracing import FunctionTrace, write_traces
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -43,9 +43,9 @@ def openai_trace_request_response(request, response):
     # Schedule the upload of trace data
     loop = asyncio.get_event_loop()
     if loop.is_running():
-        asyncio.create_task(write_traces_to_file([trace.get_trace_info()]))
+        asyncio.create_task(write_traces([trace.get_trace_info()]))
     else:
-        asyncio.run(write_traces_to_file([trace.get_trace_info()]))
+        asyncio.run(write_traces([trace.get_trace_info()]))
 
 
 def custom_send(self, request, *args, **kwargs):
