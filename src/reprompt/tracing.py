@@ -1,16 +1,14 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 from datetime import datetime
+from functools import partial
 
 import aiohttp
-import asyncio
-
-import logging
 
 from . import config
-
 from .background_task_manager import BackgroundTaskManager
-from functools import partial
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +78,7 @@ async def get_edits(input: str) -> dict:
             async with session.post(
                 f"{config.api_base_url}/api/overrides/get_example_overrides",
                 json={"input": input},
-                headers={"Content-Type": "application/json"},
+                headers={"Content-Type": "application/json", "apiKey": config.api_key},
             ) as response:
                 if response.status != 200:
                     logger.error(f"Failed to fetch edits: {response.status}")

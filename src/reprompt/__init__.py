@@ -5,13 +5,13 @@ from __future__ import annotations
 import logging
 
 from . import config
-from .tracing import FunctionTrace, write_traces, get_edits
+from .tracing import FunctionTrace, get_edits, write_traces
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # IMPORTANT: setting version for Reprompt package
-__version__ = "0.0.7.2"
+__version__ = "0.0.7.3"
 # IMPORTANT: All the functions we want to expose publicly from the reprompt module
 __all__ = ["init", "FunctionTrace", "write_traces", "get_edits"]
 
