@@ -1,136 +1,220 @@
-# Instructions
+This directory stores each Python Package.
 
 
-Once you have a venv
+# Installing Reprompt
 
-```
-pip install flit
-```
-
-Navigate to the project root and run:
+Specify the specific version of reprompt in your requirements.txt file.
 
 ```
-flit install --symlink
+reprompt==0.0.7.4
 ```
 
-This command installs the package in editable mode (similar to pip install -e .), allowing you to make
-changes to the code and see them reflected without reinstalling.
-
-Running the Tests
-Run Tests with pytest:
+And install it.
 
 ```
-pytest
+pip install -r requirements.txt
 ```
 
-This command discovers and runs all tests in the tests directory.
+## Initialize with API key
+
+To use reprompt, you need to initialize it with an API key. Obtain your API key from the Reprompt dashboard. Once you have your API key, initialize the reprompt package as follows:
+
+```
+import reprompt
+reprompt.init(api_key="your_api_key_here")
+```
+
+If you omit initializing reprompt with an `api_key` it uses the environment variable `REPROMPT_API_KEY`.
 
 
-## How do I release a new version of reprompt?
+## Tracing with Function Trace
 
-The repository is configured to automatically upload the package to PyPI when the version number changes. This is handled by a GitHub Actions workflow defined in .github/workflows/CI.yml. To trigger the upload:
+Sending traces to reprompt allows you to replay the chat history and directly use it to edit the responses.
 
-1. Change the version number in `src/reprompt/__init__.py`
-2. Commit and Push the changes to your repository.
-3. The GitHub Actions workflow will automatically build the package and upload it to PyPI.
+To trace function calls in your application, use the `FunctionTrace` class. Here's an example of how to trace a function:
+
+```python
+from reprompt.tracing import FunctionTrace
+
+def your_function_to_trace():
+    # Your function code here
+    pass
+
+trace = FunctionTrace("your_function_name", {"arg1": "value1"})
+your_function_to_trace()
+trace.end_trace({"result": "your_function_result"})
+```
+
+This will automatically collect the traces and upload them.
+
+### Tracing Example
+
+Here is an example if you are building an AI chain if you're using FastAPI + Weaviate + OpenAI.
+
+```python
+from fastapi import FastAPI, HTTPException, Request, JSONResponse
+import reprompt
+from reprompt import FunctionTrace, write_traces
+
+app = FastAPI()
+
+@app.post("/api/chat")
+async def chat(request: Request):
+    body = await request.json()
+    user_query = body.get("query", "")
+
+    # Start tracing the entire process
+    trace = FunctionTrace("semantic_response", {"query": user_query})
+
+    # Perform a semantic search with Weaviate
+    weaviate_trace = FunctionTrace("weaviate_search", {"query": user_query})
+    search_results = weaviate_search(user_query)
+    weaviate_trace.end_trace({"results": search_results})
+
+    # Generate a response using an LLM based on the search results
+    llm_trace = FunctionTrace("llm_generate_response", {"search_results": search_results})
+    llm_response = llm_generate_response(search_results)
+    llm_trace.end_trace({"response": llm_response})
+
+    # End tracing the entire process
+    trace.end_trace({"response": llm_response})
+
+    # Write all traces
+    write_traces([trace, weaviate_trace, llm_trace])
+
+    return JSONResponse(content={"response": llm_response})
+
+def weaviate_search(query: str):
+    # Implement the logic to search with Weaviate
+
+def llm_generate_response(search_results):
+    # Implement the logic to generate a response using an LLM
+
+```
 
 
-# Python Project Template
+## Implementing Edits
 
-This project is a template for creating Python projects that follows the Python Standards declared in PEP 621. It uses a pyproject.yaml file to configure the project and Flit to simplify the build process and publish to PyPI. Flit simplifies the build and packaging process for Python projects by eliminating the need for separate setup.py and setup.cfg files. With Flit, you can manage all relevant configurations within the pyproject.toml file, streamlining development and promoting maintainability by centralizing project metadata, dependencies, and build specifications in one place.
 
-## Project Organization
+To implement edits based on feedback from Reprompt, use the get_edits function. This function sends a string to Reprompt and returns suggested edits, which can be used to generate preferential responses:
 
-- `.github/workflows`: Contains GitHub Actions used for building, testing, and publishing.
-- `.devcontainer/Dockerfile`: Contains Dockerfile to build a development container for VSCode with all the necessary extensions for Python development installed.
-- `.devcontainer/devcontainer.json`: Contains the configuration for the development container for VSCode, including the Docker image to use, any additional VSCode extensions to install, and whether or not to mount the project directory into the container.
-- `.vscode/settings.json`: Contains VSCode settings specific to the project, such as the Python interpreter to use and the maximum line length for auto-formatting.
-- `src`: Place new source code here.
-- `tests`: Contains Python-based test cases to validate source code.
-- `pyproject.toml`: Contains metadata about the project and configurations for additional tools used to format, lint, type-check, and analyze Python code.
+```python
+from reprompt import get_edits
 
-### `pyproject.toml`
+# Assuming `message` is the user's input
+overrides = await get_edits(message)
+```
 
-The pyproject.toml file is a centralized configuration file for modern Python projects. It streamlines the development process by managing project metadata, dependencies, and development tool configurations in a single, structured file. This approach ensures consistency and maintainability, simplifying project setup and enabling developers to focus on writing quality code. Key components include project metadata, required and optional dependencies, development tool configurations (e.g., linters, formatters, and test runners), and build system specifications.
+### Full Integration Example
 
-In this particular pyproject.toml file, the [build-system] section specifies that the Flit package should be used to build the project. The [project] section provides metadata about the project, such as the name, description, authors, and classifiers. The [project.optional-dependencies] section lists optional dependencies, like pyspark, while the [project.urls] section supplies URLs for project documentation, source code, and issue tracking.
+Here's how you might integrate Reprompt into a specific part of your FastAPI application, focusing on generating responses with OpenAI and using Reprompt for tracing and edits:
 
-The file also contains various configuration sections for different tools, including bandit, black, coverage, flake8, pyright, pytest, tox, and pylint. These sections specify settings for each tool, such as the maximum line length for flake8 and the minimum code coverage percentage for coverage.
 
-#### Tool Sections
+```python
+from fastapi import FastAPI, HTTPException, Request, JSONResponse
+import reprompt
+from reprompt import FunctionTrace, write_traces, get_edits
+import openai
+import os
+import weaviate
+import json
+import urllib.parse
 
-##### black
+app = FastAPI()
 
-Black is a Python code formatter that automatically reformats Python code to conform to the PEP 8 style guide. It is used to maintain a consistent code style throughout the project.
+# Initialize OpenAI and Reprompt with API keys
+openai.api_key = os.getenv("OPENAI_API_KEY")
+reprompt.init(api_key="your_reprompt_api_key_here", debug=False)
 
-The pyproject.toml file specifies the maximum line length and whether or not to use a "fast" mode for formatting. Black also allows for a pyproject.toml configuration file to be included in the project directory to customize its behavior.
+# Placeholder for Weaviate client initialization
+weaviate_client = weaviate.Client("http://weaviate-instance:8080")
 
-##### coverage
+@app.post("/api/chat")
+async def chat(request: Request):
+    body = await request.json()
+    user_query = body.get("query", "")
+    if not user_query:
+        raise HTTPException(status_code=400, detail="No query provided")
 
-Coverage is a tool for measuring code coverage during testing. It generates a report of which lines of code were executed during testing and which were not.
+    # Start tracing the chat function
+    trace = FunctionTrace("chat", {"query": user_query})
 
-The pyproject.toml file specifies that branch coverage should be measured and that the tests should fail if the coverage falls below 100%. Coverage can be integrated with a variety of test frameworks, including pytest.
+    # Perform a semantic search with Weaviate
+    weaviate_trace = FunctionTrace("weaviate_search", {"query": user_query})
+    search_results = weaviate_search(user_query)
+    weaviate_trace.end_trace({"results": search_results})
 
-##### pytest
+    # Fetch preferential edits from Reprompt
+    edits_trace = FunctionTrace("fetch_edits", {"query": user_query})
+    edits = await get_edits(user_query)
+    edits_trace.end_trace({"edits": edits})
 
-Pytest is a versatile testing framework for Python projects that simplifies test case creation and execution. It supports both pytest-style and unittest-style tests, offering flexibility in testing approaches. Key features include fixture support for clean test environments, parameterized tests to reduce code duplication, and extensibility through plugins for customization. Adopt pytest to streamline testing and tailor the framework to your project's specific needs.
+    # Construct the prompt with search results and edits
+    prompt = construct_prompt(user_query, search_results, edits)
 
-The pyproject.toml file plays an essential role in configuring pytest for your project. It includes various test markers, such as integration, notebooks, gpu, spark, slow, and unit, which are used during testing. It also specifies options for generating test coverage reports, setting the Python path, and outputting test results in the xunit2 format. You can easily modify the pyproject.toml file to customize pytest for your project's specific needs.
+    # Generate a response using an LLM
+    llm_trace = FunctionTrace("llm_generate_response", {"prompt": prompt})
+    llm_response = generate_response_with_llm(prompt)
+    llm_trace.end_trace({"response": llm_response})
 
-##### pylint
-Pylint is a versatile Python linter and static analysis tool that identifies errors and style issues in your code. It generates an in-depth report, presenting errors, warnings, and conventions found in the codebase. Pylint configurations are centralized in the pyproject.toml file, covering extension management, warning suppression, output formatting, and code style settings such as maximum function arguments and class attributes. The unique scoring system provided by Pylint helps developers assess and maintain code quality, ensuring a focus on readability and maintainability throughout the project's development.
+    # Write all traces
+    write_traces([trace, weaviate_trace, edits_trace, llm_trace])
 
-##### pyright
-Pyright is a static type checker for Python that uses type annotations to analyze your code and catch type-related errors. It is capable of analyzing Python code that uses type annotations as well as code that uses docstrings to specify types.
+    return JSONResponse(content={"response": llm_response})
 
-The pyproject.toml file contains configurations for Pyright, such as the directories to include or exclude from analysis, the virtual environment to use, and various settings for reporting missing imports and type stubs. By using Pyright, you can catch errors related to type mismatches before they even occur, which can save you time and improve the quality of your code.
+def weaviate_search(query: str):
+    # Implement the logic to search with Weaviate
+    # Placeholder function
+    return [{"text": "Document text", "metadata": {"filename": "doc1.pdf", "page_number": 5}}]
 
-##### flake8
-Flake8 is a code linter for Python that checks your code for style and syntax issues. It checks your code for PEP 8 style guide violations, syntax errors, and more.
+def construct_prompt(user_query: str, search_results: list, edits: dict):
+    # Construct a detailed prompt for the LLM using the user query, search results, and edits
+    # Adapted from the provided Bernina example to fit ChatWithYourDocs
+    system_prompt = """
+You are an AI assistant named ChatWithYourDocs. Your task is to analyze extracted parts of long documents and answer questions based on this information.
 
-The pyproject.toml file contains configurations for Flake8, such as the maximum line length, which errors to ignore, and which style guide to follow. By using Flake8, you can ensure that your code follows the recommended style guide and catch syntax errors before they cause problems.
+Respond to the user's question using the related knowledge.
+Do not make up responses; if the answer is unknown, state that you do not know.
+If additional information is required to accurately answer, request further details from the user.
+Try to ground your answer based on the related knowledge provided.
+Include the IDs of the knowledge you refer to in your response as related_knowledge_ids.
+Never mention filenames or sections in the response.
+For step by step instructions, use unordered lists so it's easy to read.
+Do not use knowledge from unrelated documents.
 
-##### tox
-In our repository, we use Tox to automate testing and building our Python package across various environments and versions. Configured through the pyproject.toml file, Tox is set up with four testing environments: py, integration, spark, and all. Each environment targets specific test categories or runs all tests together, ensuring compatibility and functionality in different scenarios.
+The response should be in the following JSON format: {
+  "response": "<answer in Markdown format>",
+  "related_knowledge_ids": ["<id>"]
+}
 
-The [tool.tox] section in the pyproject.toml file contains the Tox configuration details, including the legacy_tox_ini attribute. Our setup outlines the dependencies needed for each environment, as well as the test runner (e.g., pytest) and any associated commands. This ensures consistent test execution across all environments.
+If you use a direct preferential answer for the question,
+then do not populate the related_knowledge_ids unless specified in the preferential answer.
+"""
 
-Tox helps us efficiently automate testing and building processes, maintaining the reliability and functionality of our Python package across a wide range of environments. By identifying potential compatibility issues early in the development process, we improve the quality and usability of our package. Our Tox configuration streamlines the development workflow, promoting code quality and consistency throughout the project.
+    # Incorporate search results and edits into the prompt
+    system_prompt += f"""
+### RELATED KNOWLEDGE ###
+{json.dumps(search_results)}
+### PREFERENTIAL RELATED ANSWERS ###
+{json.dumps(edits)}
+"""
 
-### Development
-#### Codespaces
-In our project, we use GitHub Codespaces to simplify development and enhance collaboration. Codespaces provides a consistent, cloud-based workspace accessible from any device with a web browser, eliminating the need for local software installations. Our configuration automatically sets up required dependencies and development tools, while customizable workspaces and seamless GitHub integration streamline the development process and improve teamwork.
+    return system_prompt
 
-When you create a Codespace from a template repository, you initially work within the browser version of Visual Studio Code. Or, connect your local VS Code to a remote Codespace and enjoy seamless development without the hassle of local software installations. GitHub now supports this fantastic feature, making it a breeze to work on projects from any device.
 
-To get started, simply set the desktop version of Visual Studio Code as your default editor in GitHub account settings. Then, connect to your remote Codespace from within VS Code, and watch as your development process is revolutionized! With Codespaces, you'll benefit from the consistency and flexibility of a cloud-based workspace while retaining the comfort of your local editor. Say hello to the future of development!
+def generate_response_with_llm(prompt: str):
+    # Call the OpenAI API to generate a response based on the constructed prompt
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        temperature=0.1,
+        messages=[
+          {"role": "system", "content": system_prompt},
+          {"role": "user", "content": message}
+        ],
+        response_format={ "type": "json_object" }
+    )
 
-GitHub Codespaces also supports Settings Sync, a feature that synchronizes extensions, settings, and preferences across multiple devices and instances of Visual Studio Code. Whether Settings Sync is enabled by default in a Codespace depends on your pre-existing settings and whether you access the Codespace via the browser or the desktop application. With Settings Sync, you can ensure a consistent development experience across devices, making it even more convenient to work on your projects within GitHub Codespaces.
+    bot_response_json = json.loads(response.choices[0].message.content)
+    markdown_response = bot_response_json["response"]
 
-#### Devcontainer
-Dev Containers in Visual Studio Code allows you to use a Docker container as a complete development environment, opening any folder or repository inside a container and taking advantage of all of VS Code's features. A devcontainer.json file in your project describes how VS Code should access or create a development container with a well-defined tool and runtime stack. You can use an image as a starting point for your devcontainer.json. An image is like a mini-disk drive with various tools and an operating system pre-installed. You can pull images from a container registry, which is a collection of repositories that store images.
-
-Creating a dev container in VS Code involves creating a devcontainer.json file that specifies how VS Code should start the container and what actions to take after it connects. You can customize the dev container by using a Dockerfile to install new software or make other changes that persist across sessions. Additional dev container configuration is also possible, including installing additional tools, automatically installing extensions, forwarding or publishing additional ports, setting runtime arguments, reusing or extending your existing Docker Compose setup, and adding more advanced container configuration.
-
-After any changes are made, you must build your dev container to ensure changes take effect. Once your dev container is functional, you can connect to and start developing within it. If the predefined container configuration does not meet your needs, you can also attach to an already running container instead. If you want to install additional software in your dev container, you can use the integrated terminal in VS Code and execute any command against the OS inside the container.
-
-When editing the contents of the .devcontainer folder, you'll need to rebuild for changes to take effect. You can use the Dev Containers: Rebuild Container command for your container to update. However, if you rebuild the container, you will have to reinstall anything you've installed manually. To avoid this problem, you can use the postCreateCommand property in devcontainer.json. There is also a postStartCommand that executes every time the container starts.
-
-You can also use a Dockerfile to automate dev container creation. In your Dockerfile, use FROM to designate the image, and the RUN instruction to install any software. You can use && to string together multiple commands. If you don't want to create a devcontainer.json by hand, you can select the Dev Containers: Add Dev Container Configuration Files... command from the Command Palette (F1) to add the needed files to your project as a starting point, which you can further customize for your needs.
-
-#### Setup
-This project includes three files in the .devcontainer and .vscode directories that enable you to use GitHub Codespaces or Docker and VSCode locally to set up an environment that includes all the necessary extensions and tools for Python development.
-
-The Dockerfile specifies the base image and dependencies needed for the development container. The Dockerfile installs the necessary dependencies for the development container, including Python 3 and flit, a tool used to build and publish Python packages. It sets an environment variable to indicate that flit should be installed globally. It then copies the pyproject.toml file into the container and creates an empty README.md file. It creates a directory src/reprompt and installs only the development dependencies using flit. Finally, it removes unnecessary files, including the pyproject.toml, README.md, and src directory.
-
-The devcontainer.json file is a configuration file that defines the development container's settings, including the Docker image to use, any additional VSCode extensions to install, and whether or not to mount the project directory into the container. It uses the python-3-miniconda container as its base, which is provided by Microsoft, and also includes customizations for VSCode, such as recommended extensions for Python development and specific settings for those extensions. In addition to the above, the settings.json file also contains a handy command that can automatically install pre-commit hooks. These hooks can help ensure the quality of the code before it's committed to the repository, improving the overall codebase and making collaboration easier.
-
-The settings.json file is where we can customize various project-specific settings within VSCode. These settings can include auto-formatting options, auto-trimming of trailing whitespace, Git auto-fetching, and much more. By modifying this file, you can tailor the VSCode environment to your specific preferences and workflow. It also contains specific settings for Python, such as the default interpreter to use, the formatting provider, and whether to enable unittest or pytest. Additionally, it includes arguments for various tools such as Pylint, Black, Flake8, and Isort, which are specified in the pyproject.toml file.
-
-## Getting Started
-
-To get started with this template, simply 'Use This Template' to create a new repository and start building your project within the `src` directory. Try to open the project in GitHub Codespace, and to run the unit tests using the VS Code Test extension.
-
-## Contributing
-
-This project welcomes contributions and suggestions. For details, visit the repository's [Contributor License Agreement (CLA)](https://cla.opensource.microsoft.com) and [Code of Conduct](https://opensource.microsoft.com/codeofconduct/) pages.
+```
