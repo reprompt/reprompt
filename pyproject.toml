@@ -8,7 +8,7 @@ authors = [
     {name = "Lukas Martinelli", email = "me@lukasmartinelli.ch"},
 ]
 description = "Reprompt"
-readme = "reprompt/README.md"
+readme = "README.md"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
