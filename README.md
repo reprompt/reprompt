@@ -1,6 +1,3 @@
-This directory stores each Python Package.
-
-
 # Installing Reprompt
 
 Specify the specific version of reprompt in your requirements.txt file.
