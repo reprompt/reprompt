@@ -17,7 +17,10 @@ pip install -r requirements.txt
 
 ## Initialize with API key
 
-To use reprompt, you need to initialize it with an API key. Obtain your API key from the Reprompt dashboard. Once you have your API key, initialize the reprompt package as follows:
+To use reprompt, you need to initialize it with an API key. Obtain your API key from the [Reprompt dashboard](https://app.repromptai.com/). Once you have your API key, initialize the reprompt package as follows:
+
+<img width="1286" alt="Screenshot 2024-04-17 at 5 01 07 PM" src="https://github.com/reprompt/reprompt/assets/1288339/afa3dc4f-0cc8-4b46-8a83-a3f19babfa8c">
+
 
 ```
 import reprompt
@@ -25,72 +28,6 @@ reprompt.init(api_key="your_api_key_here")
 ```
 
 If you omit initializing reprompt with an `api_key` it uses the environment variable `REPROMPT_API_KEY`.
-
-
-## Tracing with Function Trace
-
-Sending traces to reprompt allows you to replay the chat history and directly use it to edit the responses.
-
-To trace function calls in your application, use the `FunctionTrace` class. Here's an example of how to trace a function:
-
-```python
-from reprompt.tracing import FunctionTrace
-
-def your_function_to_trace():
-    # Your function code here
-    pass
-
-trace = FunctionTrace("your_function_name", {"arg1": "value1"})
-your_function_to_trace()
-trace.end_trace({"result": "your_function_result"})
-```
-
-This will automatically collect the traces and upload them.
-
-### Tracing Example
-
-Here is an example if you are building an AI chain if you're using FastAPI + Weaviate + OpenAI.
-
-```python
-from fastapi import FastAPI, HTTPException, Request, JSONResponse
-import reprompt
-from reprompt import FunctionTrace, write_traces
-
-app = FastAPI()
-
-@app.post("/api/chat")
-async def chat(request: Request):
-    body = await request.json()
-    user_query = body.get("query", "")
-
-    # Start tracing the entire process
-    trace = FunctionTrace("semantic_response", {"query": user_query})
-
-    # Perform a semantic search with Weaviate
-    weaviate_trace = FunctionTrace("weaviate_search", {"query": user_query})
-    search_results = weaviate_search(user_query)
-    weaviate_trace.end_trace({"results": search_results})
-
-    # Generate a response using an LLM based on the search results
-    llm_trace = FunctionTrace("llm_generate_response", {"search_results": search_results})
-    llm_response = llm_generate_response(search_results)
-    llm_trace.end_trace({"response": llm_response})
-
-    # End tracing the entire process
-    trace.end_trace({"response": llm_response})
-
-    # Write all traces
-    write_traces([trace, weaviate_trace, llm_trace])
-
-    return JSONResponse(content={"response": llm_response})
-
-def weaviate_search(query: str):
-    # Implement the logic to search with Weaviate
-
-def llm_generate_response(search_results):
-    # Implement the logic to generate a response using an LLM
-
-```
 
 
 ## Implementing Edits
@@ -104,6 +41,13 @@ from reprompt import get_edits
 # Assuming `message` is the user's input
 overrides = await get_edits(message)
 ```
+
+## Add edits
+
+Head over to [Reprompt Dashboard](https://app.repromptai.com/tune) and create a couple edits.
+
+<img width="1423" alt="Screenshot 2024-04-17 at 5 02 26 PM" src="https://github.com/reprompt/reprompt/assets/1288339/85ff3dcc-1f97-4c7d-845f-00d3b49814a8">
+
 
 ### Full Integration Example
 
@@ -218,3 +162,72 @@ def generate_response_with_llm(prompt: str):
     markdown_response = bot_response_json["response"]
 
 ```
+
+
+## Tracing with Function Trace
+
+Sending traces to reprompt allows you to replay the chat history and directly use it to edit the responses.
+
+To trace function calls in your application, use the `FunctionTrace` class. Here's an example of how to trace a function:
+
+```python
+from reprompt.tracing import FunctionTrace
+
+def your_function_to_trace():
+    # Your function code here
+    pass
+
+trace = FunctionTrace("your_function_name", {"arg1": "value1"})
+your_function_to_trace()
+trace.end_trace({"result": "your_function_result"})
+```
+
+This will automatically collect the traces and upload them.
+<img width="1286" alt="Screenshot 2024-04-17 at 5 01 54 PM" src="https://github.com/reprompt/reprompt/assets/1288339/2eb0f04e-741f-49af-9ef9-b3c130e79248">
+
+### Tracing Example
+
+Here is an example if you are building an AI chain if you're using FastAPI + Weaviate + OpenAI.
+
+```python
+from fastapi import FastAPI, HTTPException, Request, JSONResponse
+import reprompt
+from reprompt import FunctionTrace, write_traces
+
+app = FastAPI()
+
+@app.post("/api/chat")
+async def chat(request: Request):
+    body = await request.json()
+    user_query = body.get("query", "")
+
+    # Start tracing the entire process
+    trace = FunctionTrace("semantic_response", {"query": user_query})
+
+    # Perform a semantic search with Weaviate
+    weaviate_trace = FunctionTrace("weaviate_search", {"query": user_query})
+    search_results = weaviate_search(user_query)
+    weaviate_trace.end_trace({"results": search_results})
+
+    # Generate a response using an LLM based on the search results
+    llm_trace = FunctionTrace("llm_generate_response", {"search_results": search_results})
+    llm_response = llm_generate_response(search_results)
+    llm_trace.end_trace({"response": llm_response})
+
+    # End tracing the entire process
+    trace.end_trace({"response": llm_response})
+
+    # Write all traces
+    write_traces([trace, weaviate_trace, llm_trace])
+
+    return JSONResponse(content={"response": llm_response})
+
+def weaviate_search(query: str):
+    # Implement the logic to search with Weaviate
+
+def llm_generate_response(search_results):
+    # Implement the logic to generate a response using an LLM
+
+```
+
+
