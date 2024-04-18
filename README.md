@@ -17,7 +17,10 @@ pip install -r requirements.txt
 
 ## Initialize with API key
 
-To use reprompt, you need to initialize it with an API key. Obtain your API key from the Reprompt dashboard. Once you have your API key, initialize the reprompt package as follows:
+To use reprompt, you need to initialize it with an API key. Obtain your API key from the [Reprompt dashboard](https://app.repromptai.com/). Once you have your API key, initialize the reprompt package as follows:
+
+<img width="1286" alt="Screenshot 2024-04-17 at 5 01 07 PM" src="https://github.com/reprompt/reprompt/assets/1288339/afa3dc4f-0cc8-4b46-8a83-a3f19babfa8c">
+
 
 ```
 import reprompt
@@ -46,6 +49,7 @@ trace.end_trace({"result": "your_function_result"})
 ```
 
 This will automatically collect the traces and upload them.
+<img width="1286" alt="Screenshot 2024-04-17 at 5 01 54 PM" src="https://github.com/reprompt/reprompt/assets/1288339/2eb0f04e-741f-49af-9ef9-b3c130e79248">
 
 ### Tracing Example
 
@@ -104,6 +108,13 @@ from reprompt import get_edits
 # Assuming `message` is the user's input
 overrides = await get_edits(message)
 ```
+
+## Add edits
+
+Head over to [Reprompt Dashboard](https://app.repromptai.com/tune) and create a couple edits.
+
+<img width="1423" alt="Screenshot 2024-04-17 at 5 02 26 PM" src="https://github.com/reprompt/reprompt/assets/1288339/85ff3dcc-1f97-4c7d-845f-00d3b49814a8">
+
 
 ### Full Integration Example
 
