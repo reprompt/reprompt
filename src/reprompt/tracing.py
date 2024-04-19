@@ -4,6 +4,7 @@ import asyncio
 import logging
 from datetime import datetime
 from functools import partial
+import requests
 
 import aiohttp
 
@@ -13,48 +14,52 @@ from .background_task_manager import BackgroundTaskManager
 logger = logging.getLogger(__name__)
 
 
-# Core business logic for uploading traces
-async def upload_traces(data):
+# Core business logic for uploading traces using requests
+def upload_traces(data):
     if config.api_key is None:
         print("API key is required to upload traces")
         return
+
     try:
-        async with aiohttp.ClientSession() as session:
-            logger.debug("Uploading traces asynchronously")
-            async with session.post(
-                f"{config.api_base_url}/api/tracer/upload_batch",
-                json=data,
-                headers={"Content-Type": "application/json", "apiKey": config.api_key},
-            ) as response:
-                if response.status != 200:
-                    logger.error(f"Failed to upload batch: {response.status}")
-                else:
-                    logger.debug("Batch uploaded successfully")
-    except aiohttp.ClientError:
+        response = requests.post(
+            f"{config.api_base_url}/api/tracer/upload_batch",
+            json=data,
+            headers={"Content-Type": "application/json", "apiKey": config.api_key},
+        )
+        if response.status_code != 200:
+            logger.error(f"Failed to upload batch: {response.status_code}")
+        else:
+            logger.debug("Batch uploaded successfully")
+    except requests.exceptions.RequestException:
         logger.error("Cannot connect to reprompt to upload traces")
 
 
-# Asynchronous wrapper
-async def write_traces_async(traces):
-    timestamp = datetime.now().isoformat()
-    data = {"traces": [{"function_calls": traces, "timestamp": timestamp}]}
-    await upload_traces(data)
+def run_async_in_thread(data):
+    asyncio.run(upload_traces(data))
 
 
-# Synchronous wrapper
-async def write_traces_sync(traces):
-    timestamp = datetime.now().isoformat()
-    data = {"traces": [{"function_calls": traces, "timestamp": timestamp}]}
-    await upload_traces(data)
+def write_traces(traces):
+    """
+    Asynchronously writes traces. Can run in the background or awaited.
 
-
-# Unified interface to call either sync or async based on need
-async def write_traces(traces, async_mode=False):
+    :param traces: The traces to write.
+    :param background: If True, the function returns a future that can be awaited or run in the background.
+                       If False, the function awaits the upload operation internally before returning.
+    """
     traces = [trace.get_trace_info() for trace in traces]
-    if async_mode:
-        asyncio.create_task(write_traces_async(traces))
-    else:
-        await write_traces_sync(traces)
+    timestamp = datetime.now().isoformat()
+    data = {"traces": [{"function_calls": traces, "timestamp": timestamp}]}
+
+    loop = asyncio.get_running_loop()
+    loop.run_in_executor(None, upload_traces, data)
+
+
+def write_traces_sync(traces):
+    traces = [trace.get_trace_info() for trace in traces]
+    timestamp = datetime.now().isoformat()
+    data = {"traces": [{"function_calls": traces, "timestamp": timestamp}]}
+
+    upload_traces(data)
 
 
 class FunctionTrace:
