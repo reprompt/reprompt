@@ -13,15 +13,14 @@ from .background_task_manager import BackgroundTaskManager
 logger = logging.getLogger(__name__)
 
 
-async def write_traces_task(traces):
-    timestamp = datetime.now().isoformat()
-    data = {"traces": [{"function_calls": traces, "timestamp": timestamp}]}
+# Core business logic for uploading traces
+async def upload_traces(data):
     if config.api_key is None:
         print("API key is required to upload traces")
         return
     try:
         async with aiohttp.ClientSession() as session:
-            logger.debug(f"Uploading traces asynchronously")
+            logger.debug("Uploading traces asynchronously")
             async with session.post(
                 f"{config.api_base_url}/api/tracer/upload_batch",
                 json=data,
@@ -35,14 +34,27 @@ async def write_traces_task(traces):
         logger.error("Cannot connect to reprompt to upload traces")
 
 
-def write_traces(traces):
-    loop = asyncio.get_event_loop()
-    if loop.is_running():
-        loop.create_task(write_traces_task([trace.get_trace_info() for trace in traces]))
+# Asynchronous wrapper
+async def write_traces_async(traces):
+    timestamp = datetime.now().isoformat()
+    data = {"traces": [{"function_calls": traces, "timestamp": timestamp}]}
+    await upload_traces(data)
+
+
+# Synchronous wrapper
+async def write_traces_sync(traces):
+    timestamp = datetime.now().isoformat()
+    data = {"traces": [{"function_calls": traces, "timestamp": timestamp}]}
+    await upload_traces(data)
+
+
+# Unified interface to call either sync or async based on need
+async def write_traces(traces, async_mode=False):
+    traces = [trace.get_trace_info() for trace in traces]
+    if async_mode:
+        asyncio.create_task(write_traces_async(traces))
     else:
-        # Handling the case where loop is not running is tricky
-        # It's usually not recommended to try to start the loop yourself in a library function
-        print("Event loop is not running. Can't schedule write_traces_task.")
+        await write_traces_sync(traces)
 
 
 class FunctionTrace:
