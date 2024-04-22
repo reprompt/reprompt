@@ -6,6 +6,7 @@ from datetime import datetime
 from functools import partial
 import requests
 
+import json
 import aiohttp
 
 from . import config
@@ -27,7 +28,7 @@ def upload_traces(data):
             headers={"Content-Type": "application/json", "apiKey": config.api_key},
         )
         if response.status_code != 200:
-            logger.error(f"Failed to upload batch: {response.status_code}")
+            logger.error(f"Failed to upload batch: ({response.status_code}) {response.text}")
         else:
             logger.debug("Batch uploaded successfully")
     except requests.exceptions.RequestException:
@@ -98,10 +99,11 @@ async def get_edits(input: str) -> dict:
                 headers={"Content-Type": "application/json", "apiKey": config.api_key},
             ) as response:
                 if response.status != 200:
-                    logger.error(f"Failed to fetch edits: {response.status}")
-                    return None
+                    error_message = await response.text()  # Get the error message as text
+                    logger.error(f"Failed to fetch edits: ({response.status}) {error_message}")
+                    return {"error": error_message}  # Return the error message in a dict
                 else:
-                    logger.debug("fetched example overrides")
+                    logger.debug("Fetched example overrides")
                     return await response.json()
     except aiohttp.ClientError:
         logger.error("Cannot connect to reprompt to fetch edits")
