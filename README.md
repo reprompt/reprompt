@@ -6,7 +6,7 @@ This directory stores each Python Package.
 Specify the specific version of reprompt in your requirements.txt file.
 
 ```
-reprompt==0.0.7.4
+reprompt==0.0.7.8
 ```
 
 And install it.
