@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Email Response Draft</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const EmailBotApp = () => {
+            const [userInput, setUserInput] = React.useState('');
+            const [response, setResponse] = React.useState('');
+
+            const handleInputChange = (event) => {
+                setUserInput(event.target.value);
+            };
+
+            const handleSubmit = async (event) => {
+                event.preventDefault();
+                try {
+                    const res = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ message: userInput }),
+                    });
+                    const data = await res.json();
+                    setResponse(data.response);
+                } catch (error) {
+                    console.error('Error:', error);
+                    setResponse('Failed to get response from the server.');
+                }
+            };
+
+            return (
+                <div>
+                    <h1>Email Bot Assistant</h1>
+                    <form onSubmit={handleSubmit}>
+                        <textarea
+                            value={userInput}
+                            onChange={handleInputChange}
+                            placeholder="Type your email here..."
+                        />
+                        <button type="submit">Send</button>
+                    </form>
+                    <div>
+                        <h2>Response:</h2>
+                        <p>{response}</p>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<EmailBotApp />, document.getElementById('root'));
+    </script>
+</body>
+
+</html>
