@@ -48,8 +48,111 @@ Head over to [Reprompt Dashboard](https://app.repromptai.com/tune) and create a 
 
 ![](https://github.com/reprompt/reprompt/assets/1288339/85ff3dcc-1f97-4c7d-845f-00d3b49814a8)
 
+### Simple Integration Example
 
-### Full Integration Example
+```python
+from __future__ import annotations
+
+import json
+import os
+
+import openai
+import reprompt
+
+from fastapi import FastAPI, Request
+from starlette.responses import FileResponse
+
+openai.api_key = os.getenv("OPENAI_API_KEY")
+reprompt.init(api_key=os.getenv("OPENAI_API_KEY"))
+
+app = FastAPI(title="api")
+
+
+@app.post("/api/chat")
+async def chat_with_openai(request: Request):
+    body = await request.json()
+    print(body)
+    user_input = body["message"]
+
+    edits = await reprompt.get_edits(user_input)
+    prompt = """
+You are an AI assistant tasked with drafting responses to incoming emails.
+Your capabilities include understanding the content of each email, identifying the appropriate tone based on
+the context, and formulating clear, concise, and polite responses.
+
+"""
+
+    # Incorporate edits from reprompt
+    prompt += f"""
+### EXAMPLE ANSWERS ###
+{json.dumps(edits)}
+"""
+    response = openai.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": user_input},
+        ],
+    )
+    return {"response": response.choices[0].message.content}
+```
+
+### Integration tips
+
+**What are edits?**
+AI edits refer to the examples returned by the get_edits function. These edits are based on the feedback and adjustments made in the Reprompt dashboard, aimed at enhancing the model's responses.
+
+**What should I do with IF statements in my prompt?**
+If statements such as `If the email sounds angry or frustrated, start the reply with an apology.` or `If the received email is brief, keep the reply concise.` often don't work as expected in prompts. Instead of relying on conditional logic within the prompt, it's more effective to use examples. Providing GPT with clear examples of desired outputs can significantly improve the performance and relevance of the responses.
+
+**Do I need to change anything in my prompt to work with get_edits?**
+
+No significant changes are required in your prompt structure. The edits received from get_edits should be added to the end of your prompt as examples. These edits are designed to guide the model towards generating responses that align with your specific requirements.
+
+
+_Before integrating edits_
+Initially, the prompt might attempt to cover various scenarios with implicit IF statements or general instructions, lacking specificity or examples:
+
+```
+You are an AI assistant tasked with drafting responses to incoming emails. Your capabilities include understanding the content of each email, identifying the appropriate tone based on the context, and formulating clear, concise, and polite responses. Please ensure to apologize if the email sounds frustrated or angry, prioritize replies marked as urgent, and keep your responses brief if the original email is short.
+```
+
+_After integrating edits_
+After integrating edits, the prompt includes specific examples that guide the AI in handling various types of emails. These examples act as models for the AI to follow, improving its ability to generate appropriate responses:
+
+```
+You are an AI assistant tasked with drafting responses to incoming emails. Your capabilities include understanding the content of each email, identifying the appropriate tone based on the context, and formulating clear, concise, and polite responses.
+
+### EXAMPLE ANSWERS ###
+
+${json.dumps(edits)}
+```
+
+
+**How do I handle hardcoded examples in my prompt?**
+
+You should remove hardcoded examples from your prompt. This not only saves tokens but also allows the prompt to be more focused and targeted. Our platform enables your Product Manager (PM) to write examples that can be dynamically pulled in at query time, optimizing the prompt's effectiveness.
+
+
+**What information do I need to provide with the user message?**
+
+When using get_edits, you only need to tell us the user message. There's no need to include the entire prompt structure, as the edits provided will be appended to the bottom of your prompt as positive and negative examples.
+
+
+**Is chat history or a session ID required?**
+No, you don't need to provide chat history or a session ID. The get_edits functionality focuses on the current interaction.
+
+**What should I do with IF statements in my prompt?**
+IF statements often don't work as expected in prompts. Instead of relying on conditional logic within the prompt, it's more effective to use examples. Providing GPT with clear examples of desired outputs can significantly improve the performance and relevance of the responses.
+
+**Should I always call json.dumps on the edits?**
+It's not always necessary to use json.dumps on the edits unless you're incorporating them into a JSON-structured prompt or need to format them as a string for other reasons.
+
+**When I make edits in the Reprompt dashboard, does it need to be Markdown or JSON?**
+The format for editing examples should match the expected output format of your application. If you expect the output to be in Markdown, then the edits should also be made in Markdown to ensure consistency.
+
+
+### Integration Example with a RAG
 
 Here's how you might integrate Reprompt into a specific part of your FastAPI application, focusing on generating responses with OpenAI and using Reprompt for tracing and edits:
 
@@ -229,5 +332,3 @@ def llm_generate_response(search_results):
     # Implement the logic to generate a response using an LLM
 
 ```
-
-
