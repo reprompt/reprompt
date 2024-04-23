@@ -4,14 +4,13 @@ import json
 import os
 
 import openai
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, Request
 from starlette.responses import FileResponse
 
 import reprompt
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
-reprompt.init()
+reprompt.init(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = FastAPI(title="api")
 
