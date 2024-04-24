@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 # IMPORTANT: setting version for Reprompt package
 __version__ = "0.0.7.9"
 # IMPORTANT: All the functions we want to expose publicly from the reprompt module
-__all__ = ["init", "FunctionTrace", "write_traces", "get_edits", "write_traces_sync"]
+__all__ = ["init", "FunctionTrace", "write_traces", "get_edits", "get_edits_sync", "write_traces_sync"]
 
 
 def init(api_base_url: str = None, api_key: str = None, debug: bool = False):
