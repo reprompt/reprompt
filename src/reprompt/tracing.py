@@ -107,3 +107,25 @@ async def get_edits(input: str) -> dict:
                     return await response.json()
     except aiohttp.ClientError:
         logger.error("Cannot connect to reprompt to fetch edits")
+
+
+def get_edits_sync(input: str) -> dict:
+    if config.api_key is None:
+        logger.error("API key is required to fetch edits")
+        return
+
+    try:
+        response = requests.post(
+            f"{config.api_base_url}/api/overrides/get_example_overrides",
+            json={"input": input},
+            headers={"Content-Type": "application/json", "apiKey": config.api_key},
+        )
+        if response.status_code != 200:
+            logger.error(f"Failed to fetch edits: ({response.status_code}) {response.text}")
+            return {"error": response.text}
+        else:
+            logger.debug("Fetched example overrides")
+            return response.json()
+    except requests.exceptions.RequestException:
+        logger.error("Cannot connect to reprompt to fetch edits")
+        return {"error": "Cannot connect to reprompt to fetch edits"}
