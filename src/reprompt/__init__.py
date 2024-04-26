@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # IMPORTANT: setting version for Reprompt package
-__version__ = "0.0.7.9"
+__version__ = "0.0.7.11"
 # IMPORTANT: All the functions we want to expose publicly from the reprompt module
 __all__ = ["init", "FunctionTrace", "write_traces", "get_edits", "get_edits_sync", "write_traces_sync"]
 
@@ -31,7 +31,9 @@ def init(api_base_url: str = None, api_key: str = None, debug: bool = False):
         config.api_key = api_key
 
     if not config.api_key:
-        logger.error("API key is required but was not provided. Monkey patching will not be applied.")
+        logger.error(
+            "API key is required. Please set REPROMPT_API_KEY as an environment variable or provide it in init(api_key=<API_KEY>)"
+        )
         return
 
     logger.debug(

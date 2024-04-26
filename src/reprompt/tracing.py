@@ -91,6 +91,9 @@ class FunctionTrace:
 
 
 async def get_edits(input: str) -> dict:
+    if config.api_key is None:
+        logger.error("API key is required to fetch edits")
+        return
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(
