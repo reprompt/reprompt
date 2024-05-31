@@ -6,14 +6,23 @@ import logging
 
 from . import config
 from .tracing import FunctionTrace, get_edits, get_edits_sync, write_traces, write_traces_sync
+from .is_hallucinated import is_hallucinated
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # IMPORTANT: setting version for Reprompt package
-__version__ = "0.0.7.9"
+__version__ = "0.0.7.11"
 # IMPORTANT: All the functions we want to expose publicly from the reprompt module
-__all__ = ["init", "FunctionTrace", "write_traces", "get_edits", "get_edits_sync", "write_traces_sync"]
+__all__ = [
+    "init",
+    "FunctionTrace",
+    "write_traces",
+    "get_edits",
+    "get_edits_sync",
+    "write_traces_sync",
+    "is_hallucinated",
+]
 
 
 def init(api_base_url: str = None, api_key: str = None, debug: bool = False):
